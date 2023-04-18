@@ -23,15 +23,13 @@ matplotlib.rcParams['savefig.dpi'] = 600
 matplotlib.rcParams['savefig.format'] = 'svg'
 
 # 调用scikitplot绘图
-
-
 def plot_silhouette_of_various_clusters(num_li, PCA_behavior_features, data_type, sheet_name):
     for i in num_li:
         skplt.metrics.plot_silhouette(PCA_behavior_features,
                                       SpectralClustering(n_clusters=i, random_state=0, affinity='rbf').fit_predict(
                                           PCA_behavior_features),
                                       figsize=(6, 6), title=None)
-        plt.xlim(-0.1, 0.5)
+        # plt.xlim(-0.1, 0.5)
         plt.savefig(
             f'./asset/{data_type}/sheet{sheet_name}/figure/谱聚类聚类为{i}簇时各样本的轮廓系数值', bbox_inches='tight')
 
@@ -44,6 +42,10 @@ def get_ratio(input_n_clusters, PCA_behavior_features, data_type, sheet_name):
     df_add_label = pd.concat([pd.DataFrame(PCA_behavior_features), pd.DataFrame(
         [*clusterer], columns=['Cluster'])], axis=1)
     fig, ax = plt.subplots(1, 1, figsize=(8, 6))  # 设定画布
+    # 如果PCA降维后特征数小于2，则不能绘图，跳出函数
+    if df_add_label.shape[1] <= 2:
+        return dict(pd.Series(clusterer).value_counts() / clusterer.shape[0])
+    # 绘制分布图
     for label, temp_df in df_add_label.groupby('Cluster'):
         # print(temp_df)
         ax.scatter(temp_df.loc[:, 0], temp_df.loc[:, 1],
@@ -68,7 +70,7 @@ def main(data_path, sheet_name, data_type="风电"):
         os.makedirs(result_path, exist_ok=True)
 
     # 读取数据
-    df = pd.read_excel(data_path, sheet_name=0, index_col=0).T
+    df = pd.read_excel(data_path, sheet_name=int(sheet_name), index_col=0).T
     copyResult = copy.deepcopy(df)
 
     # 数据归一化
@@ -160,6 +162,7 @@ def main(data_path, sheet_name, data_type="风电"):
     ratio_list = []
     for idx in range(2,9):
         ratio_dict = get_ratio(idx, PCA_behavior_features, data_type, sheet_name)
+        # print(ratio_dict)
         ratio_list.append(ratio_dict)
     ratio_df = pd.DataFrame(ratio_list)
     ratio_df.to_csv(f'./asset/{data_type}/sheet{sheet_name}/data/ratio_df.csv',
@@ -169,6 +172,6 @@ def main(data_path, sheet_name, data_type="风电"):
 if __name__ == "__main__":
     COLOR_LIST = ['tab:red', 'black', "tab:blue", "tab:orange", "tab:green", "tab:purple",
                   "tab:brown", "tab:pink", "tab:gray", "tab:olive", "tab:cyan", "royalblue"]
-    for sheet_index in range(12):
+    for sheet_index in range(11):
         main(data_path="./datasets/风电.xlsx", sheet_name=sheet_index, data_type="风电")
         main(data_path="./datasets/光伏.xlsx", sheet_name=sheet_index, data_type="光伏")
